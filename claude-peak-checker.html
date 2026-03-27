@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Peak Hours</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;600;700&family=IBM+Plex+Sans:wght@300;400;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:       #0d0f0e;
+    --surface:  #141816;
+    --border:   #242926;
+    --muted:    #3a3f3c;
+    --text:     #c8d4cc;
+    --label:    #5e6e66;
+    --peak-clr: #ff4d4d;
+    --safe-clr: #3ddc84;
+    --promo-clr:#f0c040;
+    --mono:     'IBM Plex Mono', monospace;
+    --sans:     'IBM Plex Sans', sans-serif;
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  body {
+    padding: 24px;
+  }
+
+  .card {
+    width: 100%;
+    max-width: 520px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 36px 40px 32px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--indicator-color, var(--muted));
+    transition: background 0.8s ease;
+  }
+
+  .header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 32px;
+  }
+
+  .title {
+    font-family: var(--sans);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--label);
+  }
+
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--indicator-color, var(--muted));
+    margin-top: 3px;
+    box-shadow: 0 0 10px var(--indicator-color, transparent);
+    transition: background 0.8s ease, box-shadow 0.8s ease;
+    flex-shrink: 0;
+  }
+
+  .dot.pulse {
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .status-line {
+    margin-bottom: 28px;
+  }
+
+  .status-label {
+    font-size: 11px;
+    color: var(--label);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    font-family: var(--sans);
+  }
+
+  .status-text {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--indicator-color, var(--text));
+    transition: color 0.8s ease;
+    line-height: 1.1;
+  }
+
+  .status-sub {
+    font-size: 12px;
+    color: var(--label);
+    margin-top: 5px;
+    font-family: var(--sans);
+    font-weight: 300;
+  }
+
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 24px 0;
+  }
+
+  .row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 14px;
+  }
+
+  .row:last-child { margin-bottom: 0; }
+
+  .row-label {
+    font-size: 11px;
+    color: var(--label);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-family: var(--sans);
+  }
+
+  .row-value {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    text-align: right;
+  }
+
+  .row-value.mono { font-family: var(--mono); }
+
+  .countdown {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: 0.04em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .promo-banner {
+    margin-top: 24px;
+    border: 1px solid #3a3210;
+    background: #1a180a;
+    padding: 12px 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .promo-icon {
+    font-size: 13px;
+    color: var(--promo-clr);
+    flex-shrink: 0;
+    margin-top: 1px;
+    font-family: var(--mono);
+  }
+
+  .promo-text {
+    font-size: 11px;
+    color: #a09050;
+    line-height: 1.6;
+    font-family: var(--sans);
+  }
+
+  .promo-text strong {
+    color: var(--promo-clr);
+    font-weight: 600;
+  }
+
+  .tz-row {
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 20px;
+    font-family: var(--sans);
+    letter-spacing: 0.06em;
+  }
+
+  #clock {
+    font-variant-numeric: tabular-nums;
+  }
+</style>
+</head>
+<body>
+<div class="card" id="card">
+  <div class="header">
+    <div class="title">Claude / Usage Status</div>
+    <div class="dot pulse" id="dot"></div>
+  </div>
+
+  <div class="status-line">
+    <div class="status-label">Current Status</div>
+    <div class="status-text" id="status-text">--</div>
+    <div class="status-sub" id="status-sub"></div>
+  </div>
+
+  <hr class="divider">
+
+  <div class="row">
+    <span class="row-label">Local time</span>
+    <span class="row-value mono" id="clock">--</span>
+  </div>
+  <div class="row">
+    <span class="row-label">Day</span>
+    <span class="row-value" id="day-name">--</span>
+  </div>
+  <div class="row">
+    <span class="row-label">Peak window (local)</span>
+    <span class="row-value mono" id="peak-window">--</span>
+  </div>
+  <div class="row">
+    <span class="row-label">Next change in</span>
+    <span class="countdown" id="countdown">--</span>
+  </div>
+
+  <div class="promo-banner" id="promo-banner" style="display:none">
+    <div class="promo-icon">!</div>
+    <div class="promo-text" id="promo-text"></div>
+  </div>
+
+  <div class="tz-row" id="tz-row"></div>
+</div>
+
+<script>
+  // Peak hours: 13:00-19:00 UTC, weekdays only (Mon-Fri)
+  // Promo: March 13-28, 2026 (2x limits off-peak)
+
+  const PEAK_START_UTC = 13; // 13:00 UTC
+  const PEAK_END_UTC   = 19; // 19:00 UTC
+
+  const PROMO_START = new Date('2026-03-13T00:00:00Z');
+  const PROMO_END   = new Date('2026-03-28T23:59:59-07:00'); // 11:59 PM PT
+
+  const card = document.getElementById('card');
+  const dot  = document.getElementById('dot');
+
+  function pad(n) { return String(n).padStart(2, '0'); }
+
+  function formatTime(h, m) {
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const hh = h % 12 || 12;
+    return `${hh}:${pad(m)} ${ampm}`;
+  }
+
+  function formatHHMM(h, m, s) {
+    return `${pad(h)}:${pad(m)}:${pad(s)}`;
+  }
+
+  function isWeekend(date) {
+    const day = date.getUTCDay();
+    return day === 0 || day === 6;
+  }
+
+  function isPeakNow(now) {
+    if (isWeekend(now)) return false;
+    const utcH = now.getUTCHours();
+    const utcM = now.getUTCMinutes();
+    const totalMins = utcH * 60 + utcM;
+    return totalMins >= PEAK_START_UTC * 60 && totalMins < PEAK_END_UTC * 60;
+  }
+
+  function isPromoActive(now) {
+    return now >= PROMO_START && now <= PROMO_END;
+  }
+
+  // Returns ms until next state transition
+  function msUntilChange(now) {
+    const utcH = now.getUTCHours();
+    const utcM = now.getUTCMinutes();
+    const utcS = now.getUTCSeconds();
+    const utcMs = now.getUTCMilliseconds();
+
+    const totalMs = ((utcH * 60 + utcM) * 60 + utcS) * 1000 + utcMs;
+    const peakStartMs = PEAK_START_UTC * 3600000;
+    const peakEndMs   = PEAK_END_UTC   * 3600000;
+    const dayMs = 86400000;
+
+    const weekend = isWeekend(now);
+    const utcDay  = now.getUTCDay(); // 0=Sun,1=Mon,...,6=Sat
+
+    if (weekend) {
+      // Count ms until next Monday 13:00 UTC
+      // Days until Monday: Sun->1 day, Sat->2 days
+      const daysUntilMon = utcDay === 0 ? 1 : 2;
+      const midnightMs = dayMs - totalMs;
+      return midnightMs + (daysUntilMon - 1) * dayMs + peakStartMs;
+    }
+
+    if (isPeakNow(now)) {
+      // Until 19:00 UTC today, unless it crosses into weekend
+      return peakEndMs - totalMs;
+    } else {
+      // Off-peak on a weekday
+      if (totalMs < peakStartMs) {
+        // Before peak today
+        return peakStartMs - totalMs;
+      } else {
+        // After peak today -> next peak is next weekday 13:00
+        // If today is Fri (5), next is Mon: +3 days
+        const toMidnight = dayMs - totalMs;
+        const daysForward = (utcDay === 5) ? 3 : (utcDay === 4 ? 3 : 1); // Fri->Mon, others +1
+        // Actually: Fri(5)->Mon needs 3 days, others need 1
+        const extraDays = (utcDay === 5) ? 3 : 1;
+        return toMidnight + (extraDays - 1) * dayMs + peakStartMs;
+      }
+    }
+  }
+
+  function localPeakWindow() {
+    // Get local offset in minutes
+    const now = new Date();
+    const offsetMin = -now.getTimezoneOffset(); // positive = east of UTC
+    const startLocalMin = PEAK_START_UTC * 60 + offsetMin;
+    const endLocalMin   = PEAK_END_UTC   * 60 + offsetMin;
+
+    function minsToTime(mins) {
+      let h = Math.floor(((mins % 1440) + 1440) % 1440 / 60);
+      let m = ((mins % 1440) + 1440) % 1440 % 60;
+      return formatTime(h, m);
+    }
+    return `${minsToTime(startLocalMin)} - ${minsToTime(endLocalMin)}`;
+  }
+
+  function getDayName(date) {
+    return date.toLocaleDateString(undefined, { weekday: 'long' });
+  }
+
+  function update() {
+    const now = new Date();
+    const peak = isPeakNow(now);
+    const promo = isPromoActive(now);
+    const weekend = isWeekend(now);
+
+    // Colors
+    const color = peak ? 'var(--peak-clr)' : 'var(--safe-clr)';
+    card.style.setProperty('--indicator-color', color);
+
+    // Status text
+    const statusEl = document.getElementById('status-text');
+    const subEl    = document.getElementById('status-sub');
+
+    if (weekend) {
+      statusEl.textContent = 'OFF-PEAK';
+      subEl.textContent = 'Weekend - limits are always relaxed';
+    } else if (peak) {
+      statusEl.textContent = 'PEAK HOURS';
+      subEl.textContent = 'Session budget burns faster (05:00-11:00 PT)';
+    } else {
+      statusEl.textContent = 'OFF-PEAK';
+      subEl.textContent = promo ? '2x usage limits active' : 'Normal limits apply';
+    }
+
+    // Clock
+    document.getElementById('clock').textContent =
+      now.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+    // Day
+    document.getElementById('day-name').textContent = getDayName(now);
+
+    // Peak window local
+    if (weekend) {
+      document.getElementById('peak-window').textContent = 'N/A (weekend)';
+    } else {
+      document.getElementById('peak-window').textContent = localPeakWindow();
+    }
+
+    // Countdown
+    const ms = msUntilChange(now);
+    const totalSec = Math.floor(ms / 1000);
+    const h = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+    const label = peak ? 'until off-peak' : 'until peak';
+    const nextLabel = weekend ? 'until next peak' : label;
+    document.getElementById('countdown').textContent = `${formatHHMM(h, m, s)}`;
+
+    const countdownRow = document.getElementById('countdown').closest('.row');
+    countdownRow.querySelector('.row-label').textContent =
+      `Next change (${weekend ? 'next peak' : (peak ? 'off-peak' : 'peak')}) in`;
+
+    // Promo banner
+    const banner = document.getElementById('promo-banner');
+    if (promo) {
+      banner.style.display = 'flex';
+      document.getElementById('promo-text').innerHTML =
+        `<strong>March 2026 Promo active</strong> &mdash; ends March 28.<br>` +
+        (peak
+          ? 'Standard limits apply during peak hours (promo does not help here).'
+          : weekend
+          ? '2x usage limits apply all weekend &mdash; go build something.'
+          : '2x usage limits are active right now.');
+    } else {
+      banner.style.display = 'none';
+    }
+
+    // Timezone row
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const offsetMin = -now.getTimezoneOffset();
+    const sign = offsetMin >= 0 ? '+' : '-';
+    const oh = Math.floor(Math.abs(offsetMin) / 60);
+    const om = Math.abs(offsetMin) % 60;
+    document.getElementById('tz-row').textContent =
+      `TZ: ${tz} (UTC${sign}${pad(oh)}:${pad(om)})  -  Peak = 13:00-19:00 UTC weekdays`;
+  }
+
+  update();
+  setInterval(update, 1000);
+</script>
+</body>
+</html>

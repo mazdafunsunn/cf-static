@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Einthoven Triangle — Cardiac Axis</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:     #090d13;
+  --surf:   #0f1520;
+  --bdr:    #1a2535;
+  --bdr2:   #243040;
+  --text:   #c0cdd8;
+  --muted:  #405560;
+  --lI:     #00b8ff;
+  --lII:    #ff8f20;
+  --lIII:   #9d7fff;
+  --vec:    #00e676;
+  --perp:   #ffd060;
+  --mono:   'JetBrains Mono', 'Courier New', monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 26px 16px 40px;
+}
+
+header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+header h1 {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+header span {
+  font-size: 0.68rem;
+  color: #1e2e3e;
+  letter-spacing: 0.06em;
+}
+
+.layout {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+  justify-content: center;
+  flex-wrap: wrap;
+  max-width: 920px;
+  width: 100%;
+}
+
+/* ── Diagram ─────────────────────────────────────────── */
+.dw {
+  position: relative;
+  width: 530px;
+  height: 476px;
+  flex-shrink: 0;
+}
+.dw svg { display: block; }
+
+/* ── Lead overlays ───────────────────────────────────── */
+.lov {
+  position: absolute;
+  width: 84px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  z-index: 10;
+}
+.lov .lbl {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.85;
+  white-space: nowrap;
+}
+.lov input[type=number] {
+  width: 84px;
+  background: rgba(9,13,19,0.90);
+  border: 1.5px solid;
+  border-color: inherit;
+  color: inherit;
+  border-radius: 4px;
+  padding: 5px 6px;
+  font-size: 16px;
+  font-weight: 700;
+  font-family: var(--mono);
+  text-align: center;
+  outline: none;
+  -moz-appearance: textfield;
+}
+.lov input[type=number]::-webkit-inner-spin-button { display: none; }
+.lov input[type=number]:focus {
+  box-shadow: 0 0 0 2px;
+  box-shadow: 0 0 0 2px currentColor;
+  background: rgba(9,13,19,1);
+}
+.lov input[type=range] {
+  width: 84px;
+  accent-color: currentColor;
+  cursor: pointer;
+}
+.lov .unit {
+  font-size: 8px;
+  opacity: 0.35;
+  letter-spacing: 0.07em;
+}
+
+.lI   { color: var(--lI);   }
+.lII  { color: var(--lII);  }
+.lIII { color: var(--lIII); }
+
+/* ── Side panel ──────────────────────────────────────── */
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  min-width: 215px;
+  max-width: 230px;
+}
+.card {
+  background: var(--surf);
+  border: 1px solid var(--bdr);
+  border-radius: 5px;
+  padding: 13px 15px;
+}
+.card-hd {
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+.axis-big {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--vec);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+.zpill {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 3px 9px;
+  border-radius: 3px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.z0 { background:#092018; color:#00e676; border:1px solid #00e67630; }
+.z1 { background:#0e1030; color:#7ca5ff; border:1px solid #7ca5ff30; }
+.z2 { background:#271500; color:#ff9030; border:1px solid #ff903030; }
+.z3 { background:#270a0a; color:#ff4444; border:1px solid #ff444430; }
+
+.erow { display:flex; align-items:center; gap:8px; font-size:10.5px; }
+.echk { font-size:14px; line-height:1; }
+.enote{ font-size:9px; color:var(--muted); margin-top:5px; line-height:1.5; }
+
+.rtable { width:100%; border-collapse:collapse; font-size:9.5px; }
+.rtable td { padding:4px 0; border-bottom:1px solid var(--bdr); }
+.rtable tr:last-child td { border-bottom:none; }
+.rtable td:first-child { color:var(--muted); padding-right:6px; }
+
+.legend { display:flex; flex-direction:column; gap:5px; font-size:9.5px; }
+.lrow   { display:flex; align-items:center; gap:7px; color:var(--muted); }
+.ldot   { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.ldash  { width:14px; height:2px; opacity:0.5; flex-shrink:0; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Einthoven Triangle</h1>
+  <span>// mean cardiac axis plotter</span>
+</header>
+
+<div class="layout">
+
+  <div class="dw">
+    <svg id="svg" width="530" height="476" viewBox="0 0 530 476"></svg>
+
+    <!-- Lead I: top side -->
+    <div id="ovI" class="lov lI">
+      <span class="lbl">Lead I</span>
+      <input type="number" id="nI" step="0.1" value="0.8">
+      <input type="range"  id="rI" min="-5" max="5" step="0.1" value="0.8">
+      <span class="unit">mV</span>
+    </div>
+
+    <!-- Lead II: RA → LL side (left) -->
+    <div id="ovII" class="lov lII">
+      <span class="lbl">Lead II</span>
+      <input type="number" id="nII" step="0.1" value="1.4">
+      <input type="range"  id="rII" min="-5" max="5" step="0.1" value="1.4">
+      <span class="unit">mV</span>
+    </div>
+
+    <!-- Lead III: LA → LL side (right) -->
+    <div id="ovIII" class="lov lIII">
+      <span class="lbl">Lead III</span>
+      <input type="number" id="nIII" step="0.1" value="0.6">
+      <input type="range"  id="rIII" min="-5" max="5" step="0.1" value="0.6">
+      <span class="unit">mV</span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="card">
+      <div class="card-hd">Mean Electrical Axis</div>
+      <div class="axis-big" id="axNum">+60°</div>
+      <div id="zp" class="zpill z0">Normal Axis</div>
+      <div style="margin-top:10px;font-size:9px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;">Vector Magnitude</div>
+      <div id="axMag" style="font-size:1.1rem;font-weight:700;color:#ffd060;letter-spacing:0.04em;">— mV</div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">Einthoven's Law &nbsp;I + III = II</div>
+      <div class="erow">
+        <span class="echk" id="echk">✓</span>
+        <span id="eeq">—</span>
+      </div>
+      <div class="enote" id="enote"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">Axis Reference</div>
+      <table class="rtable">
+        <tr><td>Normal</td>      <td style="color:#00e676">−30° to +90°</td></tr>
+        <tr><td>Left Dev.</td>   <td style="color:#7ca5ff">−30° to −90°</td></tr>
+        <tr><td>Right Dev.</td>  <td style="color:#ff9030">+90° to +180°</td></tr>
+        <tr><td>Extreme Dev.</td><td style="color:#ff4444">−90° to ±180°</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">Triangle Size &nbsp;<span id="triSizeLbl" style="color:var(--vec)">100%</span></div>
+      <input type="range" id="triSize" min="0.4" max="1.6" step="0.05" value="1.0"
+        style="width:100%;accent-color:var(--vec);cursor:pointer;margin-top:4px;">
+      <div style="font-size:8px;color:var(--muted);margin-top:6px;line-height:1.6;">
+        Scale down when the intersection<br>falls outside the triangle.
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">Legend</div>
+      <div class="legend">
+        <div class="lrow"><div class="ldot" style="background:var(--lI)"></div>Lead I &nbsp;(RA → LA)</div>
+        <div class="lrow"><div class="ldot" style="background:var(--lII)"></div>Lead II &nbsp;(RA → LL)</div>
+        <div class="lrow"><div class="ldot" style="background:var(--lIII)"></div>Lead III (LA → LL)</div>
+        <div class="lrow"><div class="ldot" style="background:var(--vec)"></div>Mean cardiac vector</div>
+        <div class="lrow"><div class="ldash" style="background:var(--perp)"></div>Perpendiculars</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─── Geometry ────────────────────────────────────────────────────────────────
+const W = 530, H = 476;
+const CX = 265, CY = 210;
+
+const SIDE_BASE  = 308;
+const SCALE_BASE = 20; // px/mV at base triangle size
+
+let TRISIZE = 1.0; // multiplier driven by size slider
+let RA, LA, LL, SIDE, SCALE; // recomputed each draw()
+
+// ─── Math ─────────────────────────────────────────────────────────────────────
+function mid(a,b)  { return {x:(a.x+b.x)/2, y:(a.y+b.y)/2}; }
+function sub(a,b)  { return {x:a.x-b.x, y:a.y-b.y}; }
+function dot(a,b)  { return a.x*b.x + a.y*b.y; }
+function hyp(v)    { return Math.hypot(v.x, v.y); }
+function norm(v)   { const l=hyp(v); return l<1e-9?{x:0,y:0}:{x:v.x/l,y:v.y/l}; }
+function uvec(a,b) { return norm(sub(b,a)); }
+function pCCW(u)   { return {x:-u.y, y:u.x}; }
+function pCW(u)    { return {x:u.y, y:-u.x}; }
+
+function inwardPerp(from, to) {
+  const u=uvec(from,to), p=pCCW(u);
+  const mx=(from.x+to.x)/2, my=(from.y+to.y)/2;
+  return dot({x:CX-mx,y:CY-my}, p) > 0 ? p : pCW(u);
+}
+
+function isect(p1,d1,p2,d2) {
+  const dx=p2.x-p1.x, dy=p2.y-p1.y;
+  const det=d1.x*(-d2.y)-d1.y*(-d2.x);
+  if (Math.abs(det)<1e-9) return null;
+  const t=(dx*(-d2.y)-dy*(-d2.x))/det;
+  return {x:p1.x+t*d1.x, y:p1.y+t*d1.y};
+}
+
+// ─── SVG ──────────────────────────────────────────────────────────────────────
+const NS='http://www.w3.org/2000/svg';
+function e(tag,a,txt) {
+  const el=document.createElementNS(NS,tag);
+  for(const[k,v]of Object.entries(a)) el.setAttribute(k,v);
+  if(txt!==undefined) el.textContent=txt;
+  return el;
+}
+function arrowHead(x,y,ux,uy,fill,sz=12) {
+  const p=pCCW({x:ux,y:uy}), ax=x-ux*sz, ay=y-uy*sz;
+  return e('polygon',{
+    points:`${x},${y} ${ax+p.x*sz*.42},${ay+p.y*sz*.42} ${ax-p.x*sz*.42},${ay-p.y*sz*.42}`,
+    fill
+  });
+}
+function arcPath(cx,cy,r,a1,a2) {
+  const rad1=a1*Math.PI/180, rad2=a2*Math.PI/180;
+  const x1=cx+r*Math.cos(rad1), y1=cy+r*Math.sin(rad1);
+  const x2=cx+r*Math.cos(rad2), y2=cy+r*Math.sin(rad2);
+  const lg=Math.abs(a2-a1)>180?1:0;
+  const sw=a2>a1?1:0;
+  return `M${x1.toFixed(2)} ${y1.toFixed(2)} A${r} ${r} 0 ${lg} ${sw} ${x2.toFixed(2)} ${y2.toFixed(2)}`;
+}
+
+// ─── State & wiring ───────────────────────────────────────────────────────────
+const V={I:0.8, II:1.4, III:0.6};
+
+for(const L of ['I','II','III']) {
+  const n=document.getElementById('n'+L);
+  const r=document.getElementById('r'+L);
+  n.addEventListener('input',()=>{
+    V[L]=parseFloat(n.value)||0;
+    r.value=Math.max(-5,Math.min(5,V[L]));
+    draw();
+  });
+  r.addEventListener('input',()=>{
+    V[L]=parseFloat(r.value);
+    n.value=V[L].toFixed(1);
+    draw();
+  });
+}
+
+const sizeSlider=document.getElementById('triSize');
+const sizeLabel =document.getElementById('triSizeLbl');
+sizeSlider.addEventListener('input',()=>{
+  TRISIZE=parseFloat(sizeSlider.value);
+  sizeLabel.textContent=Math.round(TRISIZE*100)+'%';
+  draw();
+});
+
+// ─── Draw ─────────────────────────────────────────────────────────────────────
+function draw() {
+  const svg=document.getElementById('svg');
+  svg.innerHTML='';
+  const {I,II,III}=V;
+
+  // Recompute triangle geometry from current TRISIZE
+  SIDE  = SIDE_BASE  * TRISIZE;
+  SCALE = SCALE_BASE * TRISIZE;
+  const HTRI = SIDE * Math.sqrt(3) / 2;
+  RA = { x: CX - SIDE/2, y: CY - HTRI/3 };
+  LA = { x: CX + SIDE/2, y: CY - HTRI/3 };
+  LL = { x: CX,          y: CY + 2*HTRI/3 };
+
+  // Background
+  svg.appendChild(e('rect',{x:0,y:0,width:W,height:H,fill:'#090d13',rx:8}));
+
+  // Concentric reference rings
+  for(let r=40;r<=190;r+=40)
+    svg.appendChild(e('circle',{cx:CX,cy:CY,r,fill:'none',stroke:'#111a24','stroke-width':'1'}));
+
+  // Cardinal cross
+  svg.appendChild(e('line',{x1:CX-195,y1:CY,x2:CX+195,y2:CY,stroke:'#141e2a','stroke-width':'1.2'}));
+  svg.appendChild(e('line',{x1:CX,y1:CY-195,x2:CX,y2:CY+195,stroke:'#141e2a','stroke-width':'1.2'}));
+
+  // 30° tick marks
+  for(let d=0;d<360;d+=30) {
+    if(d%90===0) continue;
+    const rad=d*Math.PI/180;
+    const [r1,r2]=[178,186];
+    svg.appendChild(e('line',{
+      x1:CX+r1*Math.cos(rad),y1:CY+r1*Math.sin(rad),
+      x2:CX+r2*Math.cos(rad),y2:CY+r2*Math.sin(rad),
+      stroke:'#1c2c3c','stroke-width':'1'
+    }));
+  }
+
+  // Cardinal degree labels
+  for(const[deg,lbl] of [[0,'0°'],[-90,'-90°'],[90,'+90°'],[180,'±180°']]) {
+    const rad=deg*Math.PI/180, r=200;
+    svg.appendChild(e('text',{
+      x:CX+r*Math.cos(rad), y:CY+r*Math.sin(rad)+4,
+      fill:'#1e3040','font-size':'10','text-anchor':'middle',
+      'font-family':'JetBrains Mono,monospace'
+    },lbl));
+  }
+
+  // ── Triangle sides ──────────────────────────────────────────────────────────
+  const LC={I:'#00b8ff', II:'#ff8f20', III:'#9d7fff'};
+
+  for(const [from,to,c] of [[RA,LA,LC.I],[RA,LL,LC.II],[LA,LL,LC.III]]) {
+    svg.appendChild(e('line',{
+      x1:from.x,y1:from.y,x2:to.x,y2:to.y,
+      stroke:c,'stroke-width':'2.6',opacity:'0.72'
+    }));
+    const u=uvec(from,to);
+    svg.appendChild(arrowHead(to.x,to.y,u.x,u.y,c,13));
+  }
+
+  // ── Pole symbols (+ / −) along each lead, offset inward from vertices ──────
+  // Each lead: neg end = from, pos end = to
+  // Offset 28px along the lead direction inward from the vertex, 12px outward perp
+  function poleMark(from, to, c) {
+    const u   = uvec(from, to);
+    const inp = inwardPerp(from, to);  // points inward toward triangle center
+    const out = {x: -inp.x, y: -inp.y};
+
+    // − at 'from' vertex (negative electrode)
+    const nx = from.x + u.x*28  + out.x*13;
+    const ny = from.y + u.y*28  + out.y*13;
+    svg.appendChild(e('text', {
+      x: nx, y: ny+4,
+      fill: c, 'font-size': '16', 'font-weight': '700', 'text-anchor': 'middle',
+      'font-family': 'JetBrains Mono,monospace', opacity: '0.65'
+    }, '−'));
+
+    // + at 'to' vertex (positive electrode)
+    const px = to.x - u.x*28 + out.x*13;
+    const py = to.y - u.y*28 + out.y*13;
+    svg.appendChild(e('text', {
+      x: px, y: py+4,
+      fill: c, 'font-size': '16', 'font-weight': '700', 'text-anchor': 'middle',
+      'font-family': 'JetBrains Mono,monospace', opacity: '0.9'
+    }, '+'));
+  }
+
+  poleMark(RA, LA, LC.I);
+  poleMark(RA, LL, LC.II);
+  poleMark(LA, LL, LC.III);
+
+  // ── Vertex dots & labels ────────────────────────────────────────────────────
+  function vtx(p,label,dx,dy) {
+    svg.appendChild(e('circle',{cx:p.x,cy:p.y,r:5.5,fill:'#1a2a3a',stroke:'#2e4560','stroke-width':'1.5'}));
+    svg.appendChild(e('text',{
+      x:p.x+dx,y:p.y+dy,
+      fill:'#4a7090','font-size':'13','font-weight':'700','text-anchor':'middle',
+      'font-family':'JetBrains Mono,monospace'
+    },label));
+  }
+  vtx(RA,'RA',-18,-7);
+  vtx(LA,'LA',+18,-7);
+  vtx(LL,'LL',0,+18);
+
+  // Center
+  svg.appendChild(e('circle',{cx:CX,cy:CY,r:3,fill:'#2d4258'}));
+
+  // ── Per-lead: midpoint, foot, perpendicular ──────────────────────────────────
+  const leads=[
+    {v:I,  from:RA,to:LA,c:LC.I},
+    {v:II, from:RA,to:LL,c:LC.II},
+    {v:III,from:LA,to:LL,c:LC.III},
+  ];
+  const perps=[];
+
+  for(const ld of leads) {
+    const m  =mid(ld.from,ld.to);
+    const u  =uvec(ld.from,ld.to);
+    const inp=inwardPerp(ld.from,ld.to);
+    const ft ={x:m.x+ld.v*SCALE*u.x, y:m.y+ld.v*SCALE*u.y};
+
+    // Midpoint tick
+    svg.appendChild(e('circle',{cx:m.x,cy:m.y,r:3,fill:ld.c,opacity:'0.4'}));
+
+    // Dashed projection midpoint → foot
+    if(Math.abs(ld.v)>0.02) {
+      svg.appendChild(e('line',{
+        x1:m.x,y1:m.y,x2:ft.x,y2:ft.y,
+        stroke:ld.c,'stroke-width':'1.8',opacity:'0.5','stroke-dasharray':'5 3'
+      }));
+    }
+
+    // Foot marker
+    svg.appendChild(e('circle',{cx:ft.x,cy:ft.y,r:5.5,fill:ld.c,opacity:'0.85'}));
+    svg.appendChild(e('circle',{cx:ft.x,cy:ft.y,r:2.5,fill:'#090d13'}));
+
+    // Perpendicular (extended)
+    const EXT=240;
+    svg.appendChild(e('line',{
+      x1:ft.x-inp.x*EXT,y1:ft.y-inp.y*EXT,
+      x2:ft.x+inp.x*EXT,y2:ft.y+inp.y*EXT,
+      stroke:'#ffd060','stroke-width':'1.2',opacity:'0.25','stroke-dasharray':'8 5'
+    }));
+
+    perps.push({pt:ft,dir:inp});
+  }
+
+  // ── Intersection = tip of mean vector ────────────────────────────────────────
+  const tip=isect(perps[0].pt,perps[0].dir,perps[1].pt,perps[1].dir);
+
+  // Scale bar — bottom-left corner (1 mV = SCALE px in lead projection)
+  const sbx=22, sby=H-28, sbLen=SCALE;
+  svg.appendChild(e('line',{x1:sbx,y1:sby,x2:sbx+sbLen,y2:sby,stroke:'#ffd060','stroke-width':'2',opacity:'0.6'}));
+  svg.appendChild(e('line',{x1:sbx,y1:sby-5,x2:sbx,y2:sby+5,stroke:'#ffd060','stroke-width':'1.5',opacity:'0.6'}));
+  svg.appendChild(e('line',{x1:sbx+sbLen,y1:sby-5,x2:sbx+sbLen,y2:sby+5,stroke:'#ffd060','stroke-width':'1.5',opacity:'0.6'}));
+  svg.appendChild(e('text',{x:sbx+sbLen/2,y:sby-9,fill:'#ffd060','font-size':'9','font-weight':'600',
+    'text-anchor':'middle','font-family':'JetBrains Mono,monospace',opacity:'0.65'},'1 mV'));
+  svg.appendChild(e('text',{x:sbx+sbLen/2,y:sby+14,fill:'#2a3a20','font-size':'8',
+    'text-anchor':'middle','font-family':'JetBrains Mono,monospace'},'lead scale'));
+
+  if(tip) {
+    const dx=tip.x-CX, dy=tip.y-CY;
+    const rawDist=Math.hypot(dx,dy);
+    const deg=Math.round(Math.atan2(dy,dx)*180/Math.PI);
+    const magMV=(rawDist/SCALE).toFixed(2);
+
+    if(rawDist>2) {
+      // Draw directly to the true intersection — no clipping, no normalisation
+      svg.appendChild(e('line',{
+        x1:CX,y1:CY,x2:tip.x,y2:tip.y,
+        stroke:'#00e676','stroke-width':'3.6'
+      }));
+      const uv={x:dx/rawDist,y:dy/rawDist};
+      svg.appendChild(arrowHead(tip.x,tip.y,uv.x,uv.y,'#00e676',16));
+      svg.appendChild(e('circle',{cx:tip.x,cy:tip.y,r:4.5,fill:'#00e676'}));
+
+      // Angle arc (fixed small radius so it never overlaps the arrow)
+      svg.appendChild(e('path',{
+        d:arcPath(CX,CY,38,0,deg),
+        stroke:'#00e676','stroke-width':'1.5',fill:'none',opacity:'0.5'
+      }));
+
+      // Angle label near arc midpoint
+      const mid_a=(deg/2)*Math.PI/180;
+      svg.appendChild(e('text',{
+        x:CX+58*Math.cos(mid_a), y:CY+58*Math.sin(mid_a)+4,
+        fill:'#00e676','font-size':'12','font-weight':'700',
+        'text-anchor':'middle','font-family':'JetBrains Mono,monospace'
+      },(deg>=0?'+':'')+deg+'°'));
+    }
+
+    // Update panel
+    document.getElementById('axNum').textContent=(deg>=0?'+':'')+deg+'°';
+    document.getElementById('axMag').textContent=magMV+' mV';
+    let zone,cls;
+    if     (deg>=-30&&deg<=90) { zone='Normal Axis';         cls='z0'; }
+    else if(deg<-30&&deg>=-90) { zone='Left Axis Dev.';      cls='z1'; }
+    else if(deg>90&&deg<=180)  { zone='Right Axis Dev.';     cls='z2'; }
+    else                       { zone='Extreme Axis Dev.';   cls='z3'; }
+    const zp=document.getElementById('zp');
+    zp.textContent=zone; zp.className='zpill '+cls;
+  }
+
+  // ── Einthoven's law ───────────────────────────────────────────────────────────
+  const exp=I+III, diff=Math.abs(II-exp), ok=diff<0.25;
+  const ch=document.getElementById('echk');
+  ch.textContent=ok?'✓':'⚠';
+  ch.style.color=ok?'#00e676':'#ff4444';
+  document.getElementById('eeq').textContent=
+    `${fmt(I)} + ${fmt(III)} = ${fmt(exp)}`;
+  document.getElementById('enote').textContent=
+    ok ? `got ${fmt(II)}  ✓ consistent`
+       : `got ${fmt(II)} — discrepancy ${diff.toFixed(2)} mV`;
+
+  // ── Position lead overlays dynamically from current triangle vertices ─────────
+  // Each overlay is 84px wide, ~90px tall. We compute the outward midpoint of
+  // each side and offset the overlay center away from the triangle.
+  const OVW=84, OVH=90, GAP=14;
+  function placeOv(id, from, to) {
+    const el=document.getElementById(id);
+    const mx=(from.x+to.x)/2, my=(from.y+to.y)/2;
+    const inp=inwardPerp(from,to);
+    const ox=-inp.x, oy=-inp.y; // outward unit vector
+    // center of overlay sits GAP+half-height out from the midpoint
+    const cx2=mx+ox*(GAP+OVH/2);
+    const cy2=my+oy*(GAP+OVH/2);
+    el.style.left=(cx2-OVW/2)+'px';
+    el.style.top =(cy2-OVH/2)+'px';
+    el.style.transform='none';
+  }
+  placeOv('ovI',  RA, LA);
+  placeOv('ovII', RA, LL);
+  placeOv('ovIII',LA, LL);
+}
+
+function fmt(v) { return (v>=0?'+':'')+v.toFixed(2); }
+
+draw();
+</script>
+</body>
+</html>
